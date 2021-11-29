@@ -264,7 +264,7 @@ def cc_lin_dist_flow_model(network_data, accepted_offers, wind_scn, pf, costs, d
         print('Line flows ', [round(p,3) for p in line_flows])
         
     if check_line_loading == True:
-        file_name = '{}_line_loading.csv'.format(case_name)
+        file_name = '{} Data/Results/{}_line_loading.csv'.format(case_name,case_name)
         lines_df = pd.read_csv(file_name, index_col=None)
         new_row = {}
         for i,j in model.B:
@@ -274,7 +274,7 @@ def cc_lin_dist_flow_model(network_data, accepted_offers, wind_scn, pf, costs, d
         lines_df.to_csv(file_name, index=False)
     
     # Export costs results 
-    file_name = '{}_results_RT.csv'.format(case_name)
+    file_name = '{} Data/Results/{}_results_RT.csv'.format(case_name,case_name)
     costs_df = pd.read_csv(file_name, index_col=None)
     if test_case == 'high_liq':
         liq = 'High'
@@ -297,7 +297,7 @@ def cc_lin_dist_flow_model(network_data, accepted_offers, wind_scn, pf, costs, d
     costs_df.to_csv(file_name, index=False)
     
     #Export curtailment results
-    file_name = '{}_{}_{}_curtailment.csv'.format(case_name, test_case, market_name)
+    file_name = '{} Data/Results/{}_{}_{}_curtailment.csv'.format(case_name,case_name, test_case, market_name)
     curt_df = pd.read_csv(file_name, index_col=0)
     epsilon = 0.0000001
     t=1
