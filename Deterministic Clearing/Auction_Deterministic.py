@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue May  4 14:02:23 2021
-
-@author: emapr
 """
 
 import gurobipy as gb
@@ -20,10 +17,10 @@ def deterministic_mc(case_name, network_file, offers_file, requests_file, c_flex
     # Retrieve slack bus
     ref = list(nodes_df[nodes_df['type'] == 3].index)[0] # Return the id of the slack bus
     
-    offers_df = pd.read_csv(open('{}.csv'.format(offers_file), 'rb'))
+    offers_df = pd.read_csv(open('{} Data/{}.csv'.format(case_name,offers_file), 'rb'))
     offers = list(offers_df.index)         # index for offers
     
-    requests_df = pd.read_csv(open('{}.csv'.format(requests_file), 'rb'))
+    requests_df = pd.read_csv(open('{} Data/{}.csv'.format(case_name,requests_file), 'rb'))
     for r in requests_df.index:
         if requests_df.loc[r,'Direction']=='Up':
             requests_df.loc[r,'Price'] = c_flex_up
@@ -31,7 +28,7 @@ def deterministic_mc(case_name, network_file, offers_file, requests_file, c_flex
             requests_df.loc[r,'Price'] = c_flex_down
     requests = list(requests_df.index)         # index for offers
     
-    zones_df = pd.read_csv(open('{}.csv'.format(zones_file), 'rb'),index_col=0)
+    zones_df = pd.read_csv(open('{} Data/{}.csv'.format(case_name,zones_file), 'rb'),index_col=0)
     zones = list(set(list(zones_df['Zone'])))    # index for zones
     
     # Model alias
@@ -62,7 +59,7 @@ def deterministic_mc(case_name, network_file, offers_file, requests_file, c_flex
     
     # Maximize social welfare
     obj = gb.LinExpr()
-    # obj.add(gb.quicksum(offers_df.loc[o,'Price']*P_off[o] for o in offers))
+    obj.add(gb.quicksum(offers_df.loc[o,'Price']*P_off[o] for o in offers))
     obj.add(gb.quicksum(-requests_df.loc[r,'Price']*P_req[r] for r in requests))
     model.setObjective(obj,gb.GRB.MINIMIZE)
     
@@ -136,12 +133,12 @@ def deterministic_mc(case_name, network_file, offers_file, requests_file, c_flex
                 new_row = {"Type":'Request', "Bus":requests_df.loc[r,'Bus'], "Direction":requests_df.loc[r,'Direction'], "Quantity":Preq, "Price":requests_df.loc[r,'Price'], "Time_target":requests_df.loc[r,'Time period'], "Market_Price":market_price}
                 Accepted_df = Accepted_df.append(pd.Series(new_row, name=r), ignore_index=False)
                 Accepted_df.index.name = "ID"
-            Accepted_df.to_csv('{}_{}_accepted_DC_{}.csv'.format(case_name, offers_file, zones_file))
+            Accepted_df.to_csv('{} Data/Results/{}_{}_accepted_DC_{}.csv'.format(case_name,case_name, offers_file, zones_file))
     else: # If the problem is infeasible, retrieve the optimization status only
         points['feas'] = feas
     
     # Export costs results 
-    file_name = '{}_results_procurement.csv'.format(case_name)
+    file_name = '{} Data/Results/{}_results_procurement.csv'.format(case_name,case_name)
     costs_df = pd.read_csv(file_name, index_col=None)
     SW = 0
     dso_costs = 0
@@ -172,7 +169,7 @@ def deterministic_mc(case_name, network_file, offers_file, requests_file, c_flex
     costs_df.to_csv(file_name, index=False)
     
     # Export data per bus
-    file_name = 'results_bids_{}_{}.csv'.format(case_name, offers_file)
+    file_name = '{} Data/Results/results_bids_{}_{}.csv'.format(case_name,case_name, offers_file)
     bids_df = pd.read_csv(file_name, index_col=0)
     for i in nodes:
         if i != ref:
