@@ -1,23 +1,39 @@
 """
 Main file for running the FlexRequest model.
-It includes the following utils functions:
-1) read_network_data_lfm - specialized for the 15-bus IEEE radial distribution system
-2) line_node_incidence_matrix - to create incidence matrices for the connection between lines & bus injections
-and bus & line flows
-3) cc_margins - create uncertainty margins assumming a Gaussian pdf of the uncertainty with zero mean
-
-09.06.2021 ID
 """
 import numpy as np
 import pandas as pd
 import networkx as nx
 from scipy.linalg import sqrtm
 
-
 from cc_lin_dist_flow import cc_lin_dist_flow_model
 from mc_validation_FR import mc_out_validation
 
+#%% MODIFY THE PARAMETERS
 
+nb_t = 1 # Nb of time periods considered
+nb_scn_distrib = 2 # Nb of realizations used to evaluate the distribution of the error
+nb_scn_mc = 2 # Nb of realizations used for the Monte Carlo analysis
+
+network_file_name = 'network_15bus.xlsx'
+requests_file = 'requests.csv' # Output csv with requests
+case_name = '15bus'
+
+# Displaying results for the different steps
+display_results_FR = False
+display_results_val = False
+
+# Define acceptable violation probabilities for the chance constraints
+viol_prob = {}
+viol_prob['S'] = 0.05
+viol_prob['V'] = 0.05
+viol_prob['PF'] = 0.05
+beta_factor = 0.5
+
+# Power Factor
+pf = 0.95
+
+#%%
 def read_network_data_lfm(file_name, nb_t, nb_scn):
     baseMVA = pd.read_excel(open(file_name, 'rb'),engine='openpyxl',sheet_name='baseMVA',index_col=None)['baseMVA'].to_list()[0]
     branch_data = pd.read_excel(open(file_name, 'rb'),engine='openpyxl',sheet_name='Branch',index_col=None)
@@ -46,9 +62,6 @@ def read_network_data_lfm(file_name, nb_t, nb_scn):
             wind_rt = wind_scn_all_z[id_zone][0,scn]
             wind_scn.append(- wind_rt*wf_data.at[wf,'Pmax'])
         all_scn[:,scn] = np.add(wind_scn, np.array(wind_all_pf))
-    # Shift values to have zero mean forecast errors
-    # mean_errors = np.mean(all_scn, axis=1)[:,np.newaxis]
-    # all_scn = all_scn - mean_errors
     # Get the covariance matrix
     covariance_matrix = np.cov(all_scn)
     # np.linalg.cholesky(covariance_matrix) # To check that the matrix is PSD
@@ -61,24 +74,23 @@ def read_network_data_lfm(file_name, nb_t, nb_scn):
     Data_network['wf_data'] = wf_data
     Data_network['setpoint'] = SetPoint
     Data_network['sq_cov_mtx'] = covariance_matrix_squared
-    # Data_network['mean_errors'] = mean_errors
     Data_network['wind_all_pf'] = wind_all_pf
 
     return Data_network
 
 def load_wind_pf(z, nb_t):
-    wind_pf_z = pd.read_csv('wind_pf/wp-meas-zone{}.dat'.format(z), header=None)
+    wind_pf_z = pd.read_csv('Wind Data/wind_pf/wp-meas-zone{}.dat'.format(z), header=None)
     wind_pf_z = wind_pf_z.iloc[0:nb_t,0].tolist()
     return wind_pf_z
 
 def load_wind_sc(z, nb_t, nb_scn):
-    wind_sc_z = pd.read_csv('wind_scenarios/wp-scen-zone{}.dat'.format(z), sep = ' ',header=None)
+    wind_sc_z = pd.read_csv('Wind Data/wind_scenarios/wp-scen-zone{}.dat'.format(z), sep = ' ',header=None)
     wind_sc_z = wind_sc_z.iloc[0:nb_t,0:nb_scn]
     wind_sc_z_array = wind_sc_z.to_numpy()
     return wind_sc_z_array
 
 def load_wind_sc_eval(z, nb_t, nb_scn_distrib, nb_scn_rt):
-    wind_sc_z = pd.read_csv('wind_scenarios/wp-scen-zone{}.dat'.format(z), sep = ' ',header=None)
+    wind_sc_z = pd.read_csv('Wind Data/wind_scenarios/wp-scen-zone{}.dat'.format(z), sep = ' ',header=None)
     wind_sc_z = wind_sc_z.iloc[0:nb_t,nb_scn_distrib+1:nb_scn_distrib+1+nb_scn_rt]
     wind_sc_z_array = wind_sc_z.to_numpy()
     return wind_sc_z_array
@@ -125,7 +137,6 @@ def line_node_incidence_matrix(network_data):
     for b in G.nodes:
         b_ind = buses_ip[buses_ip['Bus'] == b].index.to_list()[0]
         if buses_ip.loc[b_ind, 'type'] != 3:
-            # Pow_inc_mtx [n_lines x n_buses]
             for eb in list_end_buses:
                 if b == eb:
                     l = lines_ip[lines_ip['To'] == b].index
@@ -138,7 +149,6 @@ def line_node_incidence_matrix(network_data):
                         for p in path:
                             path_ind.extend(buses_ip[buses_ip['Bus'] == p].index.to_list())
                             pow_inc_mtx[l, path_ind] = 1
-            # Vlt_inc_mtx [n_buses x n_lines] - basically a transpose of Pow_inc_mtx
             path = nx.shortest_path(G, b, root_bus).copy()
             lines_list = []
             for s in path:
@@ -161,40 +171,11 @@ def uncertainty_incidence_matrix(network_data):
         uncertainty_inc_mtx[wb,w] = 1
     return uncertainty_inc_mtx
 
-if __name__ == '__main__':
-    
-    #%% MODIFY THE PARAMETERS
-    
-    nb_t = 1 # Nb of time periods considered
-    nb_scn_distrib = 1000 # Nb of realizations used to evaluate the distribution of the error
-    nb_scn_mc = 2000 # Nb of realizations used for the Monte Carlo analysis
-    
-    # network_file = 'network_bnNETZE_V7.xlsx'
-    # offers_file = 'offers_bnNETZE.csv'
-    # requests_file = 'requests_bnNETZE.csv' # Output csv with requests, used as input for market clearing
-    # zones_file = 'dso_zones_bnNETZE.csv'
-    # accepted_file = 'Accepted_Deterministic_bnNETZE.csv' # Output csv with accepted offers
-    
-    network_file = 'network15bus_new.xlsx'
-    requests_file = 'requests.csv' # Output csv with requests
-    case_name = '15bus'
-    
-    # Displaying results for the different steps
-    display_results_FR = False
-    display_results_val = False
-    
-    # Define acceptable violation probabilities for the chance constraints
-    viol_prob = {}
-    viol_prob['S'] = 0.05
-    viol_prob['V'] = 0.05
-    viol_prob['PF'] = 0.05
-    beta_factor = 0.5
-    
-    # Power Factor
-    pf = 0.95
-
 #%%
+if __name__ == '__main__':
+
     # Unpack network data
+    network_file = '{} Data/{}'.format(case_name,network_file_name)
     Network_data = read_network_data_lfm(network_file, nb_t, nb_scn_distrib)
 
     # Create incidence matrices
@@ -202,7 +183,7 @@ if __name__ == '__main__':
     uncertainty_inc_mat = uncertainty_incidence_matrix(Network_data)
     
     # Run CC optimization problem to create the FlexRequests
-    flex_res = cc_lin_dist_flow_model(Network_data, pf, pow_inc_mat, vlt_inc_mat, uncertainty_inc_mat, viol_prob, beta_factor, display_results_FR, requests_file)
+    flex_res = cc_lin_dist_flow_model(case_name, Network_data, pf, pow_inc_mat, vlt_inc_mat, uncertainty_inc_mat, viol_prob, beta_factor, display_results_FR, requests_file)
     
     # Monte Carlo analysis for the performance of the CC model
     # Get the error realizations

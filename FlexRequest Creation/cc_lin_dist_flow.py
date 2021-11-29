@@ -1,8 +1,6 @@
 """
 Linear DistFlow AC power flow according to the Baran and Wu formulaiton.
-Chnace-constraints for bus voltage and line flow power included.
-
-09.06.2021 ID
+Chance-constraints for bus voltage and line flow power included.
 """
 import numpy as np
 from pyomo.kernel import *
@@ -10,7 +8,7 @@ from pyomo.util.infeasible import log_infeasible_constraints
 from scipy.stats import norm
 import pandas as pd
 
-def cc_lin_dist_flow_model(network_data, pf, pow_inc_mat, vlt_inc_mat, uncertainty_inc_mat, viol_prob, beta_factor, display_results, requests_file):
+def cc_lin_dist_flow_model(case_name, network_data, pf, pow_inc_mat, vlt_inc_mat, uncertainty_inc_mat, viol_prob, beta_factor, display_results, requests_file):
     
     if display_results == True:
         print('----------------------FlexRequest Creation----------------------')
@@ -280,7 +278,6 @@ def cc_lin_dist_flow_model(network_data, pf, pow_inc_mat, vlt_inc_mat, uncertain
     #%% Objective function
     
     model.min_flex_requests = objective(sum(model.P_flex_p[i, t] + model.P_flex_n[i, t] for i in model.N for t in model.T))
-    # model.min_flex_requests = objective(1)
     
     #%% Constraints
     
@@ -562,6 +559,6 @@ def cc_lin_dist_flow_model(network_data, pf, pow_inc_mat, vlt_inc_mat, uncertain
                 requests_df = requests_df.append({'Bus':i, 'Quantity':(model.P_flex_p[i, t].value)*baseMVA, 'Direction':'Up', 'Time period':t}, ignore_index = True)
             if model.P_flex_n[i, t].value >= 0.0001:
                 requests_df = requests_df.append({'Bus':i, 'Quantity':(model.P_flex_n[i, t].value)*baseMVA, 'Direction':'Down', 'Time period':t}, ignore_index = True)
-    requests_df.to_csv(requests_file, index=False)
+    requests_df.to_csv('{} Data/Results/{}'.format(case_name,requests_file), index=False)
     
     return F_setpoints

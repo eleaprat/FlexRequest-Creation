@@ -1,7 +1,5 @@
 """
 Monte Carlo validation of the outputs of the FlexRequest creation model for a number of out-of-sample scenarios.
-
-06.08.2021 - I.D.
 """
 
 import numpy as np
@@ -164,6 +162,6 @@ def mc_out_validation(forecast_err, flex_res, network_data, p_inc_mat, v_inc_mat
                 if display_results == True:
                  print('Chance constraint 5 ({},{},{}):{}% '.format(i,j,t,round(cc_5_prev*100 / nb_scn,1)))
 
-    CC_df.to_csv('{}_CC_results_DC.csv'.format(case_name))
+    CC_df.to_csv('{} Data/Results/{}_CC_results_DC.csv'.format(case_name,case_name))
     
     cc = [cc_1, cc_2, cc_3, cc_4, cc_5]
