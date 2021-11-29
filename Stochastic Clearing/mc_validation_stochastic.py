@@ -1,7 +1,5 @@
 """
 Monte Carlo validation of the outputs of the FlexRequest creation model for a number of out-of-sample scenarios.
-
-06.08.2021 - I.D.
 """
 
 import numpy as np
@@ -27,8 +25,6 @@ def mc_out_validation(forecast_err, results, network_data, p_inc_mat, v_inc_mat,
     branch_df = network_data['branch_data']
     nb_lines = branch_df.shape[0]
     baseMVA = network_data['base_MVA']
-    # N = list(node_df['Bus'])
-    # B = [(branch_df.loc[i, 'From'], branch_df.loc[i, 'To']) for i in branch_df.index]
     T = range(1,nb_t+1)
     
     epsilon = 0.000001 # Tolerance
@@ -209,7 +205,7 @@ def mc_out_validation(forecast_err, results, network_data, p_inc_mat, v_inc_mat,
                 if display_results == True:
                  print('Chance constraint 7 ({},{},{}):{}% '.format(i,j,t,round(cc_7_prev*100 / nb_scn,1)))
 
-    CC_df.to_csv('{}_{}_CC_results_SC.csv'.format(case_name, offer_case))
+    CC_df.to_csv('{} Data/Results/{}_{}_CC_results_SC.csv'.format(case_name, case_name, offer_case))
     
     cc = [cc_1, cc_2, cc_3, cc_4, cc_5, cc_6, cc_7]
     

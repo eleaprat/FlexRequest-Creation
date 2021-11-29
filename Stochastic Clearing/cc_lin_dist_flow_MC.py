@@ -1,8 +1,6 @@
 """
-Linear DistFlow AC power flow according to the Baran and Wu formulaiton.
-Chnace-constraints for bus voltage and line flow power included.
-
-09.06.2021 ID
+Linear DistFlow AC power flow according to the Baran and Wu formulation.
+Chance-constraints for bus voltage and line flow power included.
 """
 import numpy as np
 from pyomo.kernel import *
@@ -20,7 +18,7 @@ def cc_lin_dist_flow_model(case_name, network_data, offers_file, pf, pow_inc_mat
     set_point = np.array(network_data['setpoint'])
     covariance_matrix_squared = network_data['sq_cov_mtx']
     wind_pf = network_data['wind_all_pf']
-    offers = pd.read_csv('{}.csv'.format(offers_file))
+    offers = pd.read_csv('{} Data/{}.csv'.format(case_name,offers_file))
     
     # Create dictionnaries to retrieve the lines
     line_id = {(branch_data.at[l,'From'],branch_data.at[l,'To']):l for l in branch_data.index}
@@ -377,7 +375,6 @@ def cc_lin_dist_flow_model(case_name, network_data, offers_file, pf, pow_inc_mat
     #     elif offers.loc[o,'Direction']=='Down': 
     #         obj+=model.P_off[o]*(model.cost_off[o]-model.cost_req_down[i])
     # model.min_costs = objective(baseMVA * obj)
-    # model.min_costs = objective(1)
     
     #%% Constraints
     
@@ -660,7 +657,6 @@ def cc_lin_dist_flow_model(case_name, network_data, offers_file, pf, pow_inc_mat
         for t in model.T:
             x = [model.x10[i,j,w,t] for w in model.W]
             model.cc10[i,j,t] = conic.quadratic(model.r10[i,j,t], x)
-            # print(model.cc10[i,j,t].check_convexity_conditions(relax=False))
     model.cc11 = constraint_dict()
     for i in model.N:
         for t in model.T:
@@ -748,10 +744,10 @@ def cc_lin_dist_flow_model(case_name, network_data, offers_file, pf, pow_inc_mat
             new_row = {"Type":'Offer', "Bus":offers.loc[o,'Bus'], "Direction":offers.loc[o,'Direction'], "Quantity":Poff, "Price":offers.loc[o,'Price'], "Time_target":offers.loc[o,'Time period'], "Market_Price":market_price}
             Accepted_df = Accepted_df.append(pd.Series(new_row, name=o), ignore_index=False)
             Accepted_df.index.name = "ID"
-    Accepted_df.to_csv('{}_{}_accepted_SC.csv'.format(case_name, offers_file))
+    Accepted_df.to_csv('{} Data/Results/{}_{}_accepted_SC.csv'.format(case_name,case_name, offers_file))
     
     # Export data per bus
-    file_name = 'results_bids_{}_{}.csv'.format(case_name, offers_file)
+    file_name = '{} Data/Results/results_bids_{}_{}.csv'.format(case_name, case_name, offers_file)
     bids_df = pd.read_csv(file_name, index_col=0)
     for i in model.N:
         if i != ref:
@@ -766,7 +762,7 @@ def cc_lin_dist_flow_model(case_name, network_data, offers_file, pf, pow_inc_mat
     bids_df.to_csv(file_name)
     
    # Export costs results 
-    file_name = '{}_results_procurement.csv'.format(case_name)
+    file_name = '{} Data/Results/{}_results_procurement.csv'.format(case_name,case_name)
     costs_df = pd.read_csv(file_name, index_col=None)
     SW = 0
     dso_costs = 0
