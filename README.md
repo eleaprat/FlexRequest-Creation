@@ -1,5 +1,5 @@
 # FlexRequest-Creation
-The code is associated with the paper [*Network-Aware Flexibility Requests for Distribution-Level Flexibility Markets*](https://arxiv.org/abs/2110.05983) by E. Prat et al.
+The code is associated with the paper [*Network-Aware Flexibility Requests for Distribution-Level Flexibility Markets*](https://ieeexplore.ieee.org/document/10136760) by E. Prat et al.
 
 ## Instructions for running
 
